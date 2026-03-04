@@ -11,7 +11,11 @@ terraform {
       version = "3.8.1"
     }
   }
-  backend "s3" {}
+  backend "s3" {
+    bucket = "aws_terraform-660273306079"
+    key    = "dev/terraform-backend/terraform.tfstate"
+    region = "us-east-1"
+  }
 }
 
 provider "aws" {
@@ -22,7 +26,7 @@ provider "aws" {
 data aws_caller_identity "current" {}
 
 resource "aws_s3_bucket" "aws_terraform" {
-  bucket = "aws_terraform-${data.aws_caller_identity.current.account_id}"
+  bucket = "aws-terraform-${data.aws_caller_identity.current.account_id}"
   tags = local.common_tags
 }
 resource "aws_s3_bucket_versioning" "versioning_aws_terraform" {
@@ -30,4 +34,11 @@ resource "aws_s3_bucket_versioning" "versioning_aws_terraform" {
   versioning_configuration {
     status = "Enabled"
   }
+}
+
+module "storage" {
+    source = "./storage"
+    
+    bucket_name  = "aws-terraform-data-${data.aws_caller_identity.current.account_id}"
+    common_tags   = local.common_tags
 }

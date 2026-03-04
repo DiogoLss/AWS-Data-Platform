@@ -1,6 +1,6 @@
 locals {
   common_tags = {
-    Service     = "Terraform Study"
+    Project     = "AWS Data Platform"
     Environment = var.environment
     ManagedBy   = "Terraform"
     Owner       = "Diogo Lessa"
