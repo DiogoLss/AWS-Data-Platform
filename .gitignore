@@ -1,0 +1,15 @@
+# Terraform
+**/.terraform/
+*.tfstate
+*.tfstate.backup
+*.tfstate.lock.info
+.terraform.lock.hcl
+*.tfvars          # contains secrets — use *.tfvars.example instead
+crash.log
+
+# AWS
+.aws/
+
+# OS
+.DS_Store
+Thumbs.db
