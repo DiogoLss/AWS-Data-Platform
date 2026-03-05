@@ -37,8 +37,14 @@ resource "aws_s3_bucket_versioning" "versioning_aws_terraform" {
 }
 
 module "storage" {
-    source = "./storage"
-    
-    bucket_name  = "aws-terraform-data-${data.aws_caller_identity.current.account_id}"
-    common_tags   = local.common_tags
+  source = "./storage"
+  bucket_name  = "aws-data-${data.aws_caller_identity.current.account_id}"
+  common_tags   = local.common_tags
+}
+
+module "iam" {
+  source      = "./iam"
+  project     = "aws-data-platform"
+  common_tags = local.common_tags
+  bucket_arn  = module.storage.bucket_arn
 }
