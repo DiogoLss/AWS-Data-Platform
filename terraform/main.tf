@@ -12,7 +12,7 @@ terraform {
     }
   }
   backend "s3" {
-    bucket = "aws_terraform-660273306079"
+    bucket = "aws-terraform-660273306079"
     key    = "dev/terraform-backend/terraform.tfstate"
     region = "us-east-1"
   }
@@ -36,9 +36,11 @@ resource "aws_s3_bucket_versioning" "versioning_aws_terraform" {
   }
 }
 
+#---STORAGE
+
 module "storage" {
   source = "./storage"
-  bucket_name  = "aws-data-${data.aws_caller_identity.current.account_id}"
+  main_bucket_name  = "aws-data-${data.aws_caller_identity.current.account_id}"
   common_tags   = local.common_tags
 }
 
