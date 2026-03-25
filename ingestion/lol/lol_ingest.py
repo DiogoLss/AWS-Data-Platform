@@ -7,17 +7,19 @@ from datetime import datetime
 load_dotenv()
 
 api_key = os.getenv("RIOT_API_KEY")
+databricks_token = os.getenv("DATABRICKS_TOKEN")
 
 params = {
     'api_key': api_key
 }
+
+bucket_name = 'aws-data-660273306079'
 
 def save_data_to_s3(data, table_name):
     import json
     data = json.dumps(data)
     import boto3
     s3 = boto3.client('s3')
-    bucket_name = 'aws-data-660273306079'
 
     date = datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
     table_name = f'raw/lol/{table_name}/{date}.json'
@@ -47,10 +49,33 @@ def get_mastery(acc_id):
     mastery_data = get_api_data('br', f'/lol/champion-mastery/v4/champion-masteries/by-puuid/{acc_id}')
     save_data_to_s3(mastery_data, 'mastery')
 
+def get_last_timestamp():
+    from databricks import sql
+    import os
+
+    connection = sql.connect(
+                            server_hostname = "dbc-30ec6529-3806.cloud.databricks.com",
+                            http_path = "/sql/1.0/warehouses/77f483e3781a37ea",
+                            access_token = databricks_token)
+    cursor = connection.cursor()
+
+    cursor.execute("SELECT MAX(from_unixtime(info_gameCreation / 1000)) AS dt from bronze.lol.matches")
+    result = cursor.fetchone()
+    
+    cursor.close()
+    connection.close()
+    if result[0] is None:
+        return None
+    return int(datetime.strptime(result[0], "%Y-%m-%d %H:%M:%S").timestamp())
+
 def get_matches_list(acc_id):
-    # começo desde o início suportado (16/06/2021)
-    start_time = int(datetime(2021, 6, 16).timestamp())
-    # start_time = int((datetime.now() - timedelta(days=7)).timestamp())
+    last_ts = get_last_timestamp()
+
+    if last_ts is None:
+        start_time = int(datetime(2021, 6, 16).timestamp())
+    else:
+        SAFE_DELAY = 2 * 60 * 60
+        start_time = last_ts - SAFE_DELAY
 
     all_matches = []
     start = 0
@@ -77,7 +102,7 @@ def get_matches_list(acc_id):
     save_data_to_s3(all_matches, 'matches_list')
     return all_matches
 
-def get_matches(acc_id,all_matches):
+def get_matches(all_matches):
     for match_id in all_matches:
         try:
             match_data = get_api_data(
@@ -105,10 +130,9 @@ def get_champion_details(champions):
         response = requests.get(f'https://ddragon.leagueoflegends.com/cdn/16.6.1/data/en_US/champion/{champ}.json').json()
         save_data_to_s3(response, 'champion_details')
 
-# acc_id = get_account()
-# get_mastery(acc_id)
-# matches_list = get_matches_list(acc_id)
-# get_matches(acc_id, matches_list)
-
-champs = get_champions()
-get_champion_details(champs)
+acc_id = get_account()
+get_mastery(acc_id)
+matches_list = get_matches_list(acc_id)
+get_matches(matches_list)
+# champs = get_champions()
+# get_champion_details(champs)
